@@ -1,0 +1,9 @@
+﻿using Zero.Importing;
+
+namespace {{Path_App_Shared}}.Importing.Category.{{Entity_Name}}
+{
+    public class Import{{Entity_Name}}FromExcelJobArgs: ImportFromExcelJobArgs
+    {
+        
+    }
+}

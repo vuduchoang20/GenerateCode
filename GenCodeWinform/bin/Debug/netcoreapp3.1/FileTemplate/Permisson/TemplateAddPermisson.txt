@@ -1,0 +1,4 @@
+var {{entity_Name}} = generalSettings.CreateChildPermission({{App_Area_Name}}Permissions.{{Entity_Name}}, L("{{Entity_Name}}"));
+{{entity_Name}}.CreateChildPermission({{App_Area_Name}}Permissions.{{Entity_Name}}_Create, L("Create"));
+{{entity_Name}}.CreateChildPermission({{App_Area_Name}}Permissions.{{Entity_Name}}_Edit, L("Edit"));
+{{entity_Name}}.CreateChildPermission({{App_Area_Name}}Permissions.{{Entity_Name}}_Delete, L("Delete"));

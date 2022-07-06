@@ -1,0 +1,25 @@
+using System.ComponentModel;
+using Zero.Extensions;
+
+namespace DPS.Lib.Application.Shared.Importing.Category.Phone
+{
+    public class ImportPhoneDto
+    {
+        public int PhoneId { get; set; } 
+        
+        [DisplayName("A")]
+        [InvalidExport]
+        public string PhoneCode { get; set; }
+        
+        [DisplayName("B")]
+        [InvalidExport]
+        public string PhoneName { get; set; }
+        
+        [DisplayName("C")]
+        [InvalidExport]
+        public string PhoneNote { get; set; }
+
+        [InvalidExport]
+        public string Exception { get; set; }
+    }
+}

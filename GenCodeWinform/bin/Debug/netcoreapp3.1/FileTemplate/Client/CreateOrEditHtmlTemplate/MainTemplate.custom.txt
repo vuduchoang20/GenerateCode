@@ -1,0 +1,56 @@
+@model Zero.Web.Areas.Lib.Models.Phone.CreateOrEditPhoneViewModel
+
+@await Html.PartialAsync("~/Areas/App/Views/Common/Modals/_ModalHeader.cshtml", new ModalHeaderViewModel(Model.IsEditMode ? (L("Edit")) : L("Create")))
+
+<div class="modal-body">
+    <div id="PhoneInformationsTab">
+        <form name="PhoneInformationsForm" role="form" novalidate class="form-validation">
+
+            @if (Model.IsEditMode)
+            {
+                <input type="hidden" name="id" value="@Model.Phone.Id"/>
+            }
+            <input type="hidden" name="language" id="Entity_Language" value=""/>
+
+            <div class="row">
+                <div class="col-4">
+                    <div class="form-group">
+                        <label for="Phone_Code">
+                            @L("Code") <span class="text-danger">*</span>
+                        </label>
+                        <input class="form-control" id="Phone_Code" value="@Model.Phone.Code" type="text" name="code" required maxlength="@ZeroConst.MaxCodeLength" minlength="@ZeroConst.MinCodeLength"/>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="form-group">
+                        <label for="Phone_Name">
+                            @L("Name") <span class="text-danger">*</span>
+                        </label>
+                        <input class="form-control" id="Phone_Name" value="@Model.Phone.Name" type="text" name="name" required maxlength="@ZeroConst.MaxNameLength" minlength="@ZeroConst.MinNameLength"/>
+                    </div>
+                </div>
+                <div class="col-2">
+                    <div class="form-group mb-0">
+                        <label>@L("IsActive")</label>
+                        <div class="form-control no-border">
+                            <span class="switch switch-sm switch-icon">
+                                <label>
+                                    <input type="checkbox" value="true" id="Phone_IsActive" name="isActive" @Html.Raw(!Model.Phone.IsActive ? "" : "checked=\"checked\"")/>
+                                    <span></span>
+                                </label>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="form-group">
+                        <label for="Phone_Note">@L("Note")</label>
+                        <input class="form-control" id="Phone_Note" type="text" name="note" value="@Model.Phone.Note"/>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@await Html.PartialAsync("~/Areas/App/Views/Common/Modals/_ModalFooterWithSaveAndCancel.cshtml")

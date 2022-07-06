@@ -1,0 +1,7 @@
+namespace Zero.Web.Areas.Lib.Models.Phone
+{
+    public class PhoneViewModel
+    {
+        public string FilterText { get; set; }
+    }
+}

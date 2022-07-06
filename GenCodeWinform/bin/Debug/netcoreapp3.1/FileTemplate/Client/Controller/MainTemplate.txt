@@ -1,0 +1,137 @@
+﻿using Zero.Storage;
+using Abp.BackgroundJobs;
+using Abp.IO.Extensions;
+using Abp.Runtime.Session;
+using Abp.UI;
+using System.Globalization;
+using System.Linq;
+using System.Threading.Tasks;
+using Abp.Application.Services.Dto;
+using Abp.AspNetCore.Mvc.Authorization;
+using Abp.Web.Models;
+using Microsoft.AspNetCore.Mvc;
+using Zero.Authorization;
+using Zero.Customize;
+using Zero.Web.Controllers;
+using Zero.Web.Areas.{{App_Area_Name}}.Models.{{Entity_Name}};
+using {{Path_App_Shared}}.Dto.Basic.{{Entity_Name}};
+using {{Path_App_Shared}}.Interface.Basic;
+using {{Path_App_Shared}}.Importing.Category.{{Entity_Name}};
+using {{Path_App}}.Importing.Category.{{Entity_Name}};
+
+namespace Zero.Web.Areas.{{App_Area_Name}}.Controllers
+{
+    [Area("{{App_Area_Name}}")]
+    [AbpMvcAuthorize({{App_Area_Name}}Permissions.{{Entity_Name}})]
+    
+    public class {{Entity_Name}}Controller : ZeroControllerBase
+    {
+        private readonly I{{Entity_Name}}AppService _{{entity_Name}}AppService;
+        private readonly IBinaryObjectManager _binaryObjectManager;
+        private readonly IBackgroundJobManager _backgroundJobManager;
+
+        public {{Entity_Name}}Controller(
+            I{{Entity_Name}}AppService {{entity_Name}}AppService,
+            IBinaryObjectManager binaryObjectManager,
+            IBackgroundJobManager backgroundJobManager)
+        {
+            _{{entity_Name}}AppService = {{entity_Name}}AppService;
+             _binaryObjectManager = binaryObjectManager;
+            _backgroundJobManager = backgroundJobManager;
+        }
+
+        public ActionResult Index()
+        {
+            return View(new {{Entity_Name}}ViewModel {FilterText = ""});
+        }
+
+        [AbpMvcAuthorize({{App_Area_Name}}Permissions.{{Entity_Name}}_Create, {{App_Area_Name}}Permissions.{{Entity_Name}}_Edit)]
+        public async Task<PartialViewResult> CreateOrEditModal(int? id)
+        {
+            Get{{Entity_Name}}ForEditOutput get{{Entity_Name}}ForEditOutput;
+
+            if (id.HasValue)
+            {
+                get{{Entity_Name}}ForEditOutput =
+                    await _{{entity_Name}}AppService.Get{{Entity_Name}}ForEdit(new EntityDto { Id = (int)id });
+            }
+            else
+            {
+                get{{Entity_Name}}ForEditOutput = new Get{{Entity_Name}}ForEditOutput
+                {
+                    {{Entity_Name}} = new CreateOrEdit{{Entity_Name}}Dto()
+                    {
+                        Code = StringHelper.ShortIdentity(),
+                        IsActive = true
+                    }
+                };
+            }
+
+            var viewModel = new CreateOrEdit{{Entity_Name}}ViewModel()
+            {
+                {{Entity_Name}} = get{{Entity_Name}}ForEditOutput.{{Entity_Name}}
+            };
+
+            return PartialView("_CreateOrEditModal", viewModel);
+        }
+
+ 
+        [HttpPost]
+        [AbpMvcAuthorize({{App_Area_Name}}Permissions.{{Entity_Name}}_Create)]
+        public async Task<JsonResult> ImportFromExcel()
+        {
+            try
+            {
+                var file = Request.Form.Files.First();
+
+                if (file == null)
+                {
+                    throw new UserFriendlyException(L("File_Empty_Error"));
+                }
+
+                if (file.Length > 1048576 * 100) //100 MB
+                {
+                    throw new UserFriendlyException(L("File_SizeLimit_Error"));
+                }
+
+                byte[] fileBytes;
+                await using (var stream = file.OpenReadStream())
+                {
+                    fileBytes = stream.GetAllBytes();
+                }
+
+                var tenantId = AbpSession.TenantId;
+                var fileObject = new BinaryObject(tenantId, fileBytes);
+
+                await _binaryObjectManager.SaveAsync(fileObject);
+
+                await _backgroundJobManager.EnqueueAsync<Import{{Entity_Name}}FromExcelJob, Import{{Entity_Name}}FromExcelJobArgs>(
+                    new Import{{Entity_Name}}FromExcelJobArgs
+                    {
+                        TenantId = tenantId,
+                        BinaryObjectId = fileObject.Id,
+                        User = AbpSession.ToUserIdentifier(),
+                        Lang = CultureInfo.CurrentUICulture.Name
+                    }
+                );
+
+                return Json(new AjaxResponse(new { }));
+            }
+            catch (UserFriendlyException ex)
+            {
+                return Json(new AjaxResponse(new ErrorInfo(ex.Message)));
+            }
+        }
+
+
+
+        [AbpMvcAuthorize({{App_Area_Name}}Permissions.{{Entity_Name}}_Create)]
+        public ActionResult ExportTemplate()
+        {
+             var path = $"{GlobalConfig.ImportSampleFolders}{ZeroImportConsts.{{Entity_Name}}}";
+            var stream = System.IO.File.OpenRead(path);
+            return new FileStreamResult(stream, System.Net.Mime.MediaTypeNames.Application.Octet)
+                {FileDownloadName = $"{ZeroImportConsts.{{Entity_Name}}}"};
+        }
+    }
+}

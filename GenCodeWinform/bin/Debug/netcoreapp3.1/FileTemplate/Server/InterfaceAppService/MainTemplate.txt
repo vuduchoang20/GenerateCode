@@ -1,0 +1,18 @@
+﻿using System.Threading.Tasks;
+using Abp.Application.Services;
+using Abp.Application.Services.Dto;
+using {{Path_App_Shared}}.Dto.Basic.{{Entity_Name}};
+
+namespace {{Path_App_Shared}}.Interface.Basic
+{
+    public interface I{{Entity_Name}}AppService: IApplicationService 
+    {
+        Task<PagedResultDto<Get{{Entity_Name}}ForViewDto>> GetAll(GetAll{{Entity_Name}}Input input);
+        
+        Task<Get{{Entity_Name}}ForEditOutput> Get{{Entity_Name}}ForEdit(EntityDto input);
+
+        Task CreateOrEdit(CreateOrEdit{{Entity_Name}}Dto input);
+
+        Task Delete(EntityDto input);
+    }
+}

@@ -1,0 +1,156 @@
+﻿(function () {
+    $(function () {
+
+        let _${{Entity_Name}}Table = $('#{{Entity_Name}}Table');
+        let _${{Entity_Name}}TableFilter = $('#{{Entity_Name}}TableFilter');
+        let _${{Entity_Name}}FormFilter = $('#{{Entity_Name}}FormFilter');
+
+        let _$refreshButton = _${{Entity_Name}}FormFilter.find("button[name='RefreshButton']");
+        let _createSingleButton = $('#CreateNewButton');
+
+        let _{{entity_Name}}Service = abp.services.app.{{entity_Name}};
+
+        let _scriptUrl = abp.appPath + 'view-resources/Areas/{{App_Area_Name}}/{{Entity_Name}}/';
+        let _viewUrl = abp.appPath + '{{App_Area_Name}}/{{Entity_Name}}/';
+
+        const _permissions = {
+            create: abp.auth.hasPermission('Lib.{{Entity_Name}}.Create'),
+            edit: abp.auth.hasPermission('Lib.{{Entity_Name}}.Edit'),
+            'delete': abp.auth.hasPermission('Lib.{{Entity_Name}}.Delete')
+        };
+
+        const _createOrEditModal = new app.ModalManager({
+            viewUrl: _viewUrl + 'CreateOrEditModal',
+            scriptUrl: _scriptUrl + '_CreateOrEditModal.js',
+            modalClass: 'CreateOrEdit{{Entity_Name}}Modal'
+        });
+
+        let getFilter = function () {
+            return {
+                filter: _${{Entity_Name}}TableFilter.val()
+            };
+        };
+
+        let dataTable = _${{Entity_Name}}Table.DataTable({
+            paging: true,
+            serverSide: true,
+            processing: true,
+            deferLoad: 0,
+            listAction: {
+                ajaxFunction: _{{entity_Name}}Service.getAll,
+                inputFilter: getFilter
+            },
+            columnDefs: [
+                {
+                    targets: 0,
+                    className: 'control responsive',
+                    orderable: false,
+                    render: function () {
+                        return '';
+                    }
+                },
+                {
+                    width: 80,
+                    targets: 1,
+                    data: null,
+                    orderable: false,
+                    autoWidth: false,
+                    defaultContent: '',
+                    rowAction: {
+                        dropDownStyle: false,
+                        cssClass: 'text-center',
+                        items: [
+                            {
+                                icon: 'la la-edit text-primary',
+                                text: app.localize('Edit'),
+                                visible: function (data) {
+                                    return _permissions.edit;
+                                },
+                                action: function (data) {
+                                    _createOrEditModal.open({id: data.record.{{entity_Name}}.id});
+                                }
+                            },
+                            {
+                                icon: 'la la-trash text-danger',
+                                text: app.localize('Delete'),
+                                visible: function (data) {
+                                    return _permissions.delete;
+                                },
+                                action: function (data) {
+                                    baseHelper.Delete(data.record.{{entity_Name}}, _{{entity_Name}}Service, get{{Entity_Name}});
+                                }
+                            }]
+                    }
+                },
+                {
+                    targets: 2,
+                    data: "{{entity_Name}}.code",
+                    name: "code"
+                },
+                {
+                    targets: 3,
+                    data: "{{entity_Name}}.name",
+                    name: "name"
+                },
+                {
+                    targets: 4,
+                    data: "{{entity_Name}}.note",
+                    name: "note"
+                },
+                {
+                    targets: 5,
+                    data: "{{entity_Name}}.isActive",
+                    name: "isActive",
+                    class: "text-center",
+                    width: 80,
+                    render: function(isActive) {
+                        return baseHelper.ShowActive(isActive);
+                    }
+                }
+            ]
+        });
+
+        function get{{Entity_Name}}() {
+            dataTable.ajax.reload();
+        }
+
+        if (_$refreshButton) {
+            _$refreshButton.on('click', get{{Entity_Name}});
+        }
+        
+        if (_createSingleButton) {
+            _createSingleButton.click(function () {
+                _createOrEditModal.open();
+            });
+        }
+
+        abp.event.on('app.createOrEdit{{Entity_Name}}ModalSaved', get{{Entity_Name}});
+
+        $(document).keypress(function (e) {
+            let sideBar = $('#kt_quick_sidebar');
+            if (e.which === 13 && (sideBar === undefined || !sideBar.hasClass('kt-quick-panel--on'))) {
+                get{{Entity_Name}}();
+            }
+        });
+
+        //IMPORT
+        let btnImport = $('#ImportFromExcelButton');
+        if (btnImport) {
+            btnImport.fileupload({
+                url: abp.appPath + 'Lib/{{Entity_Name}}/ImportFromExcel',
+                dataType: 'json',
+                maxFileSize: 1048576 * 100,
+                done: function (e, response) {
+                    let jsonResult = response.result;
+                    if (jsonResult.success) {
+                        abp.notify.info(app.localize('UploadImportFileSuccessful'));
+                    } else {
+                        abp.notify.warn(app.localize('UploadImportFileFailed'));
+                    }
+                }
+            }).prop('disabled', !$.support.fileInput)
+                .parent().addClass($.support.fileInput ? undefined : 'disabled');
+        }
+        
+    });
+})();

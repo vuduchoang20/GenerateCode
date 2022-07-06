@@ -1,0 +1,56 @@
+﻿@model Zero.Web.Areas.{{App_Area_Name}}.Models.{{Entity_Name}}.CreateOrEdit{{Entity_Name}}ViewModel
+
+@await Html.PartialAsync("~/Areas/App/Views/Common/Modals/_ModalHeader.cshtml", new ModalHeaderViewModel(Model.IsEditMode ? (L("Edit")) : L("Create")))
+
+<div class="modal-body">
+    <div id="{{Entity_Name}}InformationsTab">
+        <form name="{{Entity_Name}}InformationsForm" role="form" novalidate class="form-validation">
+
+            @if (Model.IsEditMode)
+            {
+                <input type="hidden" name="id" value="@Model.{{Entity_Name}}.Id"/>
+            }
+            <input type="hidden" name="language" id="Entity_Language" value=""/>
+
+            <div class="row">
+                <div class="col-4">
+                    <div class="form-group">
+                        <label for="{{Entity_Name}}_Code">
+                            @L("Code") <span class="text-danger">*</span>
+                        </label>
+                        <input class="form-control" id="{{Entity_Name}}_Code" value="@Model.{{Entity_Name}}.Code" type="text" name="code" required maxlength="@ZeroConst.MaxCodeLength" minlength="@ZeroConst.MinCodeLength"/>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="form-group">
+                        <label for="{{Entity_Name}}_Name">
+                            @L("Name") <span class="text-danger">*</span>
+                        </label>
+                        <input class="form-control" id="{{Entity_Name}}_Name" value="@Model.{{Entity_Name}}.Name" type="text" name="name" required maxlength="@ZeroConst.MaxNameLength" minlength="@ZeroConst.MinNameLength"/>
+                    </div>
+                </div>
+                <div class="col-2">
+                    <div class="form-group mb-0">
+                        <label>@L("IsActive")</label>
+                        <div class="form-control no-border">
+                            <span class="switch switch-sm switch-icon">
+                                <label>
+                                    <input type="checkbox" value="true" id="{{Entity_Name}}_IsActive" name="isActive" @Html.Raw(!Model.{{Entity_Name}}.IsActive ? "" : "checked=\"checked\"")/>
+                                    <span></span>
+                                </label>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="form-group">
+                        <label for="{{Entity_Name}}_Note">@L("Note")</label>
+                        <input class="form-control" id="{{Entity_Name}}_Note" type="text" name="note" value="@Model.{{Entity_Name}}.Note"/>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@await Html.PartialAsync("~/Areas/App/Views/Common/Modals/_ModalFooterWithSaveAndCancel.cshtml")

@@ -1,0 +1,25 @@
+﻿using System.ComponentModel;
+using Zero.Extensions;
+
+namespace {{Path_App_Shared}}.Importing.Category.{{Entity_Name}}
+{
+    public class Import{{Entity_Name}}Dto
+    {
+        public int {{Entity_Name}}Id { get; set; } 
+        
+        [DisplayName("A")]
+        [InvalidExport]
+        public string {{Entity_Name}}Code { get; set; }
+        
+        [DisplayName("B")]
+        [InvalidExport]
+        public string {{Entity_Name}}Name { get; set; }
+        
+        [DisplayName("C")]
+        [InvalidExport]
+        public string {{Entity_Name}}Note { get; set; }
+
+        [InvalidExport]
+        public string Exception { get; set; }
+    }
+}

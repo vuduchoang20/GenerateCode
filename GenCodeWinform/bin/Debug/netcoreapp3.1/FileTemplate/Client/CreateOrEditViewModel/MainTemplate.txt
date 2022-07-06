@@ -1,0 +1,11 @@
+﻿using {{Path_App_Shared}}.Dto.Basic.{{Entity_Name}};
+
+namespace Zero.Web.Areas.{{App_Area_Name}}.Models.{{Entity_Name}}
+{
+    public class CreateOrEdit{{Entity_Name}}ViewModel
+    {
+        public CreateOrEdit{{Entity_Name}}Dto {{Entity_Name}} { get; set; }
+
+        public bool IsEditMode => {{Entity_Name}}.Id.HasValue;
+    }
+}

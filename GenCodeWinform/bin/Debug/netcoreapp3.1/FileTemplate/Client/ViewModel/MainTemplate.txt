@@ -1,0 +1,7 @@
+﻿namespace Zero.Web.Areas.{{App_Area_Name}}.Models.{{Entity_Name}}
+{
+    public class {{Entity_Name}}ViewModel
+    {
+        public string FilterText { get; set; }
+    }
+}

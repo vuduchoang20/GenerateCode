@@ -1,0 +1,137 @@
+using Zero.Storage;
+using Abp.BackgroundJobs;
+using Abp.IO.Extensions;
+using Abp.Runtime.Session;
+using Abp.UI;
+using System.Globalization;
+using System.Linq;
+using System.Threading.Tasks;
+using Abp.Application.Services.Dto;
+using Abp.AspNetCore.Mvc.Authorization;
+using Abp.Web.Models;
+using Microsoft.AspNetCore.Mvc;
+using Zero.Authorization;
+using Zero.Customize;
+using Zero.Web.Controllers;
+using Zero.Web.Areas.Lib.Models.Phone;
+using DPS.Lib.Application.Shared.Dto.Basic.Phone;
+using DPS.Lib.Application.Shared.Interface.Basic;
+using DPS.Lib.Application.Shared.Importing.Category.Phone;
+using DPS.Lib.Application.Importing.Category.Phone;
+
+namespace Zero.Web.Areas.Lib.Controllers
+{
+    [Area("Lib")]
+    [AbpMvcAuthorize(LibPermissions.Phone)]
+    
+    public class PhoneController : ZeroControllerBase
+    {
+        private readonly IPhoneAppService _phoneAppService;
+        private readonly IBinaryObjectManager _binaryObjectManager;
+        private readonly IBackgroundJobManager _backgroundJobManager;
+
+        public PhoneController(
+            IPhoneAppService phoneAppService,
+            IBinaryObjectManager binaryObjectManager,
+            IBackgroundJobManager backgroundJobManager)
+        {
+            _phoneAppService = phoneAppService;
+             _binaryObjectManager = binaryObjectManager;
+            _backgroundJobManager = backgroundJobManager;
+        }
+
+        public ActionResult Index()
+        {
+            return View(new PhoneViewModel {FilterText = ""});
+        }
+
+        [AbpMvcAuthorize(LibPermissions.Phone_Create, LibPermissions.Phone_Edit)]
+        public async Task<PartialViewResult> CreateOrEditModal(int? id)
+        {
+            GetPhoneForEditOutput getPhoneForEditOutput;
+
+            if (id.HasValue)
+            {
+                getPhoneForEditOutput =
+                    await _phoneAppService.GetPhoneForEdit(new EntityDto { Id = (int)id });
+            }
+            else
+            {
+                getPhoneForEditOutput = new GetPhoneForEditOutput
+                {
+                    Phone = new CreateOrEditPhoneDto()
+                    {
+                        Code = StringHelper.ShortIdentity(),
+                        IsActive = true
+                    }
+                };
+            }
+
+            var viewModel = new CreateOrEditPhoneViewModel()
+            {
+                Phone = getPhoneForEditOutput.Phone
+            };
+
+            return PartialView("_CreateOrEditModal", viewModel);
+        }
+
+ 
+        [HttpPost]
+        [AbpMvcAuthorize(LibPermissions.Phone_Create)]
+        public async Task<JsonResult> ImportFromExcel()
+        {
+            try
+            {
+                var file = Request.Form.Files.First();
+
+                if (file == null)
+                {
+                    throw new UserFriendlyException(L("File_Empty_Error"));
+                }
+
+                if (file.Length > 1048576 * 100) //100 MB
+                {
+                    throw new UserFriendlyException(L("File_SizeLimit_Error"));
+                }
+
+                byte[] fileBytes;
+                await using (var stream = file.OpenReadStream())
+                {
+                    fileBytes = stream.GetAllBytes();
+                }
+
+                var tenantId = AbpSession.TenantId;
+                var fileObject = new BinaryObject(tenantId, fileBytes);
+
+                await _binaryObjectManager.SaveAsync(fileObject);
+
+                await _backgroundJobManager.EnqueueAsync<ImportPhoneFromExcelJob, ImportPhoneFromExcelJobArgs>(
+                    new ImportPhoneFromExcelJobArgs
+                    {
+                        TenantId = tenantId,
+                        BinaryObjectId = fileObject.Id,
+                        User = AbpSession.ToUserIdentifier(),
+                        Lang = CultureInfo.CurrentUICulture.Name
+                    }
+                );
+
+                return Json(new AjaxResponse(new { }));
+            }
+            catch (UserFriendlyException ex)
+            {
+                return Json(new AjaxResponse(new ErrorInfo(ex.Message)));
+            }
+        }
+
+
+
+        [AbpMvcAuthorize(LibPermissions.Phone_Create)]
+        public ActionResult ExportTemplate()
+        {
+             var path = $"{GlobalConfig.ImportSampleFolders}{ZeroImportConsts.Phone}";
+            var stream = System.IO.File.OpenRead(path);
+            return new FileStreamResult(stream, System.Net.Mime.MediaTypeNames.Application.Octet)
+                {FileDownloadName = $"{ZeroImportConsts.Phone}"};
+        }
+    }
+}

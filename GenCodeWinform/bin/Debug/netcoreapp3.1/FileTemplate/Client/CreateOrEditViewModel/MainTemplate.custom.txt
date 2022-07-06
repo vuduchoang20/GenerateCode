@@ -1,0 +1,11 @@
+using DPS.Lib.Application.Shared.Dto.Basic.Phone;
+
+namespace Zero.Web.Areas.Lib.Models.Phone
+{
+    public class CreateOrEditPhoneViewModel
+    {
+        public CreateOrEditPhoneDto Phone { get; set; }
+
+        public bool IsEditMode => Phone.Id.HasValue;
+    }
+}

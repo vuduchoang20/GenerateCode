@@ -1,0 +1,18 @@
+using System.Threading.Tasks;
+using Abp.Application.Services;
+using Abp.Application.Services.Dto;
+using DPS.Lib.Application.Shared.Dto.Basic.Phone;
+
+namespace DPS.Lib.Application.Shared.Interface.Basic
+{
+    public interface IPhoneAppService: IApplicationService 
+    {
+        Task<PagedResultDto<GetPhoneForViewDto>> GetAll(GetAllPhoneInput input);
+        
+        Task<GetPhoneForEditOutput> GetPhoneForEdit(EntityDto input);
+
+        Task CreateOrEdit(CreateOrEditPhoneDto input);
+
+        Task Delete(EntityDto input);
+    }
+}

@@ -1,0 +1,4 @@
+public const string {{Entity_Name}} = "{{App_Area_Name}}.{{Entity_Name}}";
+public const string {{Entity_Name}}_Create = "{{App_Area_Name}}.{{Entity_Name}}.Create";
+public const string {{Entity_Name}}_Edit = "{{App_Area_Name}}.{{Entity_Name}}.Edit";
+public const string {{Entity_Name}}_Delete = "{{App_Area_Name}}.{{Entity_Name}}.Delete";

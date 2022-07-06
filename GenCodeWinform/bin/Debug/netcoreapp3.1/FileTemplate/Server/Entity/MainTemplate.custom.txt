@@ -1,0 +1,20 @@
+using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations;
+using Abp.Domain.Entities;
+using Zero.Customize.Base;
+
+namespace DPS.Lib.Core.Basic
+{
+    [Table("Lib_Phone")]
+    public class Phone: SimpleFullAuditedEntity, IMayHaveTenant
+    {
+        public int? TenantId { get; set; }
+
+        [Required]
+	 	public string BookName { get; set;}
+
+	 	public int? Number { get; set;}
+
+
+    }
+}

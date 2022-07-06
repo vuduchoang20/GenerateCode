@@ -1,0 +1,7 @@
+﻿namespace {{Path_App_Shared}}.Dto.Basic.{{Entity_Name}}
+{
+    public class Get{{Entity_Name}}ForEditOutput
+    {
+        public CreateOrEdit{{Entity_Name}}Dto {{Entity_Name}} { get; set; }
+    }
+}

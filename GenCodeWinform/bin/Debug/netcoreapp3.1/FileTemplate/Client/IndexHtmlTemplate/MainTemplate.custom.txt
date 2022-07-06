@@ -1,0 +1,74 @@
+@model Zero.Web.Areas.Lib.Models.Phone.PhoneViewModel
+@{
+    ViewBag.CurrentPageName = AppPageNames.Lib.Phone;
+}
+
+@section Scripts
+{
+    <script abp-src="@ZeroConst.ScriptPathLib/Phone/Index.js" asp-append-version="true"></script>
+}
+
+<div class="content d-flex flex-column flex-column-fluid" id="kt_content">
+    <abp-page-subheader title="@L("Phone")" description="@L("PhoneHeaderInfo")">
+        @if (IsGranted(LibPermissions.Phone_Create))
+        {
+            <div class="btn-group">
+                <button type="button" class="btn btn-outline-success dropdown-toggle mr-1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <i class="far fa-file-excel"></i> @L("ExcelOperations")
+                </button>
+                <div class="dropdown-menu dropdown-menu-right">
+                    <a class="dropdown-item" href="#">
+                        <span class="fileinput-button">
+                            <span>@L("ImportFromExcel")</span>
+                            <input id="ImportFromExcelButton" type="file" name="files" accept=".xlsx">
+                        </span>
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <span class="dropdown-item" href="#">
+                        @Html.Raw("<a href='" + @Url.Action("ExportTemplate", "Phone") + "'>" + L("DownLoadImportTemplate") + "</a>")
+                    </span>
+                </div>
+            </div>
+            <button id="CreateNewButton" class="btn btn-primary blue">
+                <i class="fa fa-plus"></i> @L("Create")
+            </button>
+        }
+    </abp-page-subheader>
+
+    <div class="@(await GetContainerClass())">
+        <div class="card card-custom gutter-b">
+            <div class="card-body">
+                <div class="form">
+                    <div id="PhoneFormFilter">
+                        <div class="row mb-15">
+                            <div class="col-12">
+                                <div class="input-group">
+                                    <input id="PhoneTableFilter" class="form-control" type="text" value="@ViewBag.FilterText" placeholder="@L("SearchWithThreeDot")" aria-describedby="basic-addon2">
+                                    <span class="input-group-btn">
+                                        <button type="button" name="RefreshButton" class="btn btn-primary">
+                                            <i class="fa fa-search"></i>
+                                        </button>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="align-items-center">
+                    <table id="PhoneTable" class="display table table-striped table-bordered table-hover">
+                        <thead>
+                        <tr>
+                            <th></th>
+                            <th class="text-center">@L("Actions")</th>
+                            <th class="text-center">@L("Code")</th>
+                            <th class="text-center">@L("Name")</th>
+                            <th class="text-center">@L("Note")</th>
+                            <th class="text-center">@L("IsActive")</th>
+                        </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

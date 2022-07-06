@@ -1,0 +1,7 @@
+namespace DPS.Lib.Application.Shared.Dto.Basic.Phone
+{
+    public class GetPhoneForEditOutput
+    {
+        public CreateOrEditPhoneDto Phone { get; set; }
+    }
+}

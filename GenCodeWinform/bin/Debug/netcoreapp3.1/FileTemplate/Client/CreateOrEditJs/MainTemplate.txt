@@ -1,0 +1,41 @@
+﻿(function ($) {
+    app.modals.CreateOrEdit{{Entity_Name}}Modal = function () {
+
+        const _{{entity_Name}}Service = abp.services.app.{{entity_Name}};
+
+        let _modalManager;
+        let _${{Entity_Name}}InformationForm = null;
+
+        let modal;
+
+        this.init = function (modalManager) {
+            _modalManager = modalManager;
+
+            modal = _modalManager.getModal();
+
+            _modalManager.initControl();
+
+            _${{Entity_Name}}InformationForm = _modalManager.getModal().find('form[name={{Entity_Name}}InformationsForm]');
+            _${{Entity_Name}}InformationForm.validate();
+        };
+
+        this.save = function () {
+            if (!_${{Entity_Name}}InformationForm.valid()) {
+                return;
+            }
+
+            const {{Entity_Name}} = _${{Entity_Name}}InformationForm.serializeFormToObject();
+            
+            _modalManager.setBusy(true);
+            _{{entity_Name}}Service.createOrEdit(
+                {{Entity_Name}}
+            ).done(function () {
+                abp.notify.info(app.localize('SavedSuccessfully'));
+                _modalManager.close();
+                abp.event.trigger('app.createOrEdit{{Entity_Name}}ModalSaved');
+            }).always(function () {
+                _modalManager.setBusy(false);
+            });
+        };
+    };
+})(jQuery);

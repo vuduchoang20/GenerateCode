@@ -1,0 +1,310 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Globalization;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Abp.BackgroundJobs;
+using Abp.Dependency;
+using Abp.Domain.Repositories;
+using Abp.EntityFrameworkCore.Repositories;
+using Abp.Threading;
+using NUglify.Helpers;
+using Z.EntityFramework.Extensions;
+using Zero;
+using Zero.Customize.DataExporting;
+using Zero.Customize.DataImporting;
+using Zero.Importing;
+using Zero.Notifications;
+using Zero.Storage;
+using {{Path_App_Shared}}.Importing.Category.{{Entity_Name}};
+
+namespace {{Path_App}}.Importing.Category.{{Entity_Name}}
+{
+    public class Import{{Entity_Name}}FromExcelJob: BackgroundJob<Import{{Entity_Name}}FromExcelJobArgs>, ITransientDependency
+    {
+        #region Constructor
+
+        private readonly IAppNotifier _appNotifier;
+        private readonly IBinaryObjectManager _binaryObjectManager;
+        private readonly ITempFileCacheManager _tempFileCacheManager;
+
+        private readonly IRepository<Core.Basic.{{Entity_Name}}> _{{entity_Name}}Repository;
+
+        public Import{{Entity_Name}}FromExcelJob(
+            IAppNotifier appNotifier,
+            IBinaryObjectManager binaryObjectManager,
+            ITempFileCacheManager tempFileCacheManager,
+            IRepository<Core.Basic.{{Entity_Name}}> {{entity_Name}}Repository)
+        {
+            _appNotifier = appNotifier;
+            _binaryObjectManager = binaryObjectManager;
+            _tempFileCacheManager = tempFileCacheManager;
+            _{{entity_Name}}Repository = {{entity_Name}}Repository;
+            LocalizationSourceName = ZeroConst.LocalizationSourceName;
+        }
+
+        private const string NotifyPrefix = "Import_{{Entity_Name}} : ";
+        
+        #endregion
+        
+        public override void Execute(Import{{Entity_Name}}FromExcelJobArgs args)
+        {
+            if (!string.IsNullOrEmpty(args.Lang))
+            {
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(args.Lang);
+                Thread.CurrentThread.CurrentCulture = CultureInfo.GetCultureInfo(args.Lang);
+            }
+
+            SendNotification(args, ZeroEnums.ImportProcess.StartReadFile);
+
+            var benchMark = Stopwatch.StartNew();
+            var lstObj = GetObjListFromExcelOrNull(args);
+            if (lstObj == null || !lstObj.Any())
+            {
+                return;
+            }
+
+            benchMark.Stop();
+            Logger.Warn($"{NotifyPrefix} - GetObjListFromExcelOrNull - {benchMark.Elapsed.ToString()}");
+            SendNotification(args, ZeroEnums.ImportProcess.EndReadFile);
+            SendNotification(args, ZeroEnums.ImportProcess.Start);
+            Import(args, lstObj);
+        }
+
+        private List<Import{{Entity_Name}}Dto> GetObjListFromExcelOrNull(ImportFromExcelJobArgs args)
+        {
+            using var uow = UnitOfWorkManager.Begin();
+            using (CurrentUnitOfWork.SetTenantId(args.TenantId))
+            {
+                try
+                {
+                    var file = AsyncHelper.RunSync(() => _binaryObjectManager.GetOrNullAsync(args.BinaryObjectId));
+                    var reader = new ListExcelDataReader<Import{{Entity_Name}}Dto>(Logger);
+                    return reader.GetFromExcel(file.Bytes);
+                }
+                catch (Exception err)
+                {
+                    Logger.Error($"{NotifyPrefix} - GetObjListFromExcelOrNull", err);
+                    return null;
+                }
+                finally
+                {
+                    uow.Complete();
+                }
+            }
+        }
+
+        private async Task<List<Import{{Entity_Name}}Dto>> Validate(int tenantId,
+            IReadOnlyList<Import{{Entity_Name}}Dto> objs)
+        {
+            var lstValidated = new List<Import{{Entity_Name}}Dto>();
+
+            foreach (var itm in objs)
+            {
+                if (string.IsNullOrEmpty(itm.Exception)) itm.Exception = "";
+                var lstEmpty = new List<string>();
+
+                if (string.IsNullOrEmpty(itm.{{Entity_Name}}Code))
+                    lstEmpty.Add(L("{{Entity_Name}}Code"));
+                if (string.IsNullOrEmpty(itm.{{Entity_Name}}Name))
+                    lstEmpty.Add(L("{{Entity_Name}}Name"));
+
+                if (!lstEmpty.Any()) continue;
+
+                itm.Exception += $"{L("NotEmpty")} {string.Join(" ", lstEmpty)}";
+
+                lstValidated.Add(itm);
+            }
+
+            return lstValidated;
+        }
+
+        private void Import(Import{{Entity_Name}}FromExcelJobArgs args,
+            IReadOnlyList<Import{{Entity_Name}}Dto> impObjs)
+        {
+            EntityFrameworkManager.ContextFactory = _ => _{{entity_Name}}Repository.GetDbContext();
+            using var uow = UnitOfWorkManager.Begin();
+
+            using (CurrentUnitOfWork.SetTenantId(args.TenantId))
+            {
+                try
+                {
+                    AsyncHelper.RunSync(async () =>
+                        await Create(impObjs, args)
+                    );
+                }
+                catch (Exception e)
+                {
+                    SendNotification(args, ZeroEnums.ImportProcess.Fail);
+                    Logger.Error($"{NotifyPrefix} - Import", e);
+                }
+                finally
+                {
+                    uow.Complete();
+                }
+            }
+        }
+
+        private async Task Create(IReadOnlyList<Import{{Entity_Name}}Dto> lstObj,
+            Import{{Entity_Name}}FromExcelJobArgs args)
+        {
+            try
+            {
+                if (lstObj != null && lstObj.Any())
+                {
+                    var lstInvalid = await Validate(args.TenantId ?? 0, lstObj);
+                    if (!lstInvalid.Any())
+                    {
+                        var tenantId = args.TenantId;
+                        var lstReject = new List<Import{{Entity_Name}}Dto>();
+                        var excelRowCount = 0;
+                        
+                        var lst{{Entity_Name}} =
+                            await _{{entity_Name}}Repository.GetAllListAsync(o =>
+                                !o.IsDeleted && o.TenantId == args.TenantId);
+                        
+                        foreach (var obj in lstObj)
+                        {
+                            excelRowCount++;
+                            if (!lst{{Entity_Name}}.Any(o =>o.Code.Equals(obj.{{Entity_Name}}Code, StringComparison.InvariantCultureIgnoreCase)))
+                            {
+                                continue;
+                            }
+                                
+                            obj.Exception += $"{L("ExistedData")} : {obj.{{Entity_Name}}Code} ;";
+                            lstReject.Add(obj);
+                        }
+
+                        if (!lstReject.Any())
+                        {
+                            var lstNew{{Entity_Name}} = new List<Core.Basic.{{Entity_Name}}>();
+                            foreach (var obj in lstObj)
+                            {
+                                if (lst{{Entity_Name}}.Any(o =>
+                                        o.Code.Equals(obj.{{Entity_Name}}Code, StringComparison.InvariantCultureIgnoreCase)))
+                                {
+                                    obj.{{Entity_Name}}Id = lst{{Entity_Name}}.First(o =>
+                                        o.Code.Equals(obj.{{Entity_Name}}Code, StringComparison.InvariantCultureIgnoreCase)).Id;
+                                }
+
+                                if (obj.{{Entity_Name}}Id == 0)
+                                {
+                                    lstNew{{Entity_Name}}.Add(new Core.Basic.{{Entity_Name}}
+                                    {
+                                        TenantId = args.TenantId,
+                                        Code = obj.{{Entity_Name}}Code,
+                                        Name = obj.{{Entity_Name}}Name,
+                                        Note = obj.{{Entity_Name}}Note,
+                                        IsActive = true
+                                    });
+                                }
+                            }
+
+                            if (lstNew{{Entity_Name}}.Any())
+                            {
+                                lstNew{{Entity_Name}} = lstNew{{Entity_Name}}.DistinctBy(o => o.Code).ToList();
+                                if (excelRowCount != lstNew{{Entity_Name}}.Count)
+                                {
+                                    SendNotification(args, ZeroEnums.ImportProcess.ExcelHasDuplicateObjs);
+                                    return;
+                                }
+                                await _{{entity_Name}}Repository.GetDbContext()
+                                    .BulkInsertAsync(lstNew{{Entity_Name}},
+                                        options =>
+                                        {
+                                            options.IncludeGraph = false;
+                                        });
+                            }
+
+                            SendNotification(args, ZeroEnums.ImportProcess.Success);
+                        }
+                        else
+                        {
+                            SendNotification(args, ZeroEnums.ImportProcess.HasInvalidObjs);
+                            var invalidExporter =
+                                new InvalidExporter<Import{{Entity_Name}}Dto>(_tempFileCacheManager, LocalizationManager);
+                            var file = invalidExporter.ExportToFile(lstReject, "Loi_Import_{{Entity_Name}}");
+                            await _appNotifier.SomeObjectCouldntBeImported(args.User, file.FileToken, file.FileType,
+                                file.FileName);
+                        }
+                    }
+                    else
+                    {
+                        SendNotification(args, ZeroEnums.ImportProcess.HasInvalidObjs);
+                        var invalidExporter =
+                            new InvalidExporter<Import{{Entity_Name}}Dto>(_tempFileCacheManager, LocalizationManager);
+                        var file = invalidExporter.ExportToFile(lstInvalid, "Loi_Import_{{Entity_Name}}");
+                        await _appNotifier.SomeObjectCouldntBeImported(args.User, file.FileToken, file.FileType,
+                            file.FileName);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                SendNotification(args, ZeroEnums.ImportProcess.Fail);
+                Logger.Error($"{NotifyPrefix} - Create ", e);
+            }
+        }
+
+        private void SendNotification(ImportFromExcelJobArgs args, ZeroEnums.ImportProcess process, string message = "")
+        {
+            using var uow = UnitOfWorkManager.Begin();
+            using (CurrentUnitOfWork.SetTenantId(args.TenantId))
+            {
+                switch (process)
+                {
+                    case ZeroEnums.ImportProcess.Start:
+                        AsyncHelper.RunSync(async () => await _appNotifier.SendMessageAsync(
+                                args.User,
+                                $"{NotifyPrefix} {L("ImportProcessStart")}"
+                            )
+                        );
+                        break;
+                    case ZeroEnums.ImportProcess.Success:
+
+                        AsyncHelper.RunSync(async () => await _appNotifier.SendMessageAsync(
+                            args.User,
+                            $"{NotifyPrefix} {L("ImportFromFileSuccess")} {message}",
+                            Abp.Notifications.NotificationSeverity.Success)
+                        );
+                        break;
+                    case ZeroEnums.ImportProcess.Fail:
+                        AsyncHelper.RunSync(async () => await _appNotifier.SendMessageAsync(
+                            args.User,
+                            $"{NotifyPrefix} {L("ImportFromFileFail")} {message}",
+                            Abp.Notifications.NotificationSeverity.Error)
+                        );
+                        break;
+                    case ZeroEnums.ImportProcess.HasInvalidObjs:
+                        AsyncHelper.RunSync(async () => await _appNotifier.SendMessageAsync(
+                                args.User,
+                                $"{NotifyPrefix} {L("HasInvalidObjs")} {message}",
+                                Abp.Notifications.NotificationSeverity.Error
+                            )
+                        );
+                        break;
+                    case ZeroEnums.ImportProcess.StartReadFile:
+                        break;
+                    case ZeroEnums.ImportProcess.EndReadFile:
+                        break;
+                    case ZeroEnums.ImportProcess.Empty:
+                        break;
+                    case ZeroEnums.ImportProcess.ExcelHasDuplicateObjs:
+                        AsyncHelper.RunSync(async () => await _appNotifier.SendMessageAsync(
+                                args.User,
+                                $"{NotifyPrefix} {L("ExcelHasDuplicateObjs")} {message}",
+                                Abp.Notifications.NotificationSeverity.Error
+                            )
+                        );
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(process), process, null);
+                }
+            }
+
+            uow.Complete();
+        }
+    }
+}

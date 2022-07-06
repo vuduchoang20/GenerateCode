@@ -1,0 +1,15 @@
+using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations;
+using Abp.Domain.Entities;
+using Zero.Customize.Base;
+
+namespace {{Path_Core}}.Basic
+{
+    [Table("{{Table_Name}}")]
+    public class {{Entity_Name}}: {{Base_Class_Entity_Name}}, IMayHaveTenant
+    {
+        public int? TenantId { get; set; }
+
+        {{Properties_Entity}}
+    }
+}

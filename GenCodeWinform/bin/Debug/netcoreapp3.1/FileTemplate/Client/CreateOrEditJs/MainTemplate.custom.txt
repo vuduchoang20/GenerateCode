@@ -1,0 +1,41 @@
+(function ($) {
+    app.modals.CreateOrEditPhoneModal = function () {
+
+        const _phoneService = abp.services.app.phone;
+
+        let _modalManager;
+        let _$PhoneInformationForm = null;
+
+        let modal;
+
+        this.init = function (modalManager) {
+            _modalManager = modalManager;
+
+            modal = _modalManager.getModal();
+
+            _modalManager.initControl();
+
+            _$PhoneInformationForm = _modalManager.getModal().find('form[name=PhoneInformationsForm]');
+            _$PhoneInformationForm.validate();
+        };
+
+        this.save = function () {
+            if (!_$PhoneInformationForm.valid()) {
+                return;
+            }
+
+            const Phone = _$PhoneInformationForm.serializeFormToObject();
+            
+            _modalManager.setBusy(true);
+            _phoneService.createOrEdit(
+                Phone
+            ).done(function () {
+                abp.notify.info(app.localize('SavedSuccessfully'));
+                _modalManager.close();
+                abp.event.trigger('app.createOrEditPhoneModalSaved');
+            }).always(function () {
+                _modalManager.setBusy(false);
+            });
+        };
+    };
+})(jQuery);

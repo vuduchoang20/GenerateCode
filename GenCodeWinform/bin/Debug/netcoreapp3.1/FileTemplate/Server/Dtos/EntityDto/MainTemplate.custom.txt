@@ -1,0 +1,14 @@
+using Zero.Customize.Base;
+
+namespace DPS.Lib.Application.Shared.Dto.Basic.Phone
+{
+    public class PhoneDto: SimpleFullAuditedEntityDto
+    {
+       [Required]
+	 	public string BookName { get; set;}
+
+	 	public int? Number { get; set;}
+
+
+    }
+}

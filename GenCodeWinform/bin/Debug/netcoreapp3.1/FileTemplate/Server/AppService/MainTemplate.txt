@@ -1,0 +1,151 @@
+﻿using System.Linq;
+using System.Linq.Dynamic.Core;
+using System.Threading.Tasks;
+using Abp.Application.Services.Dto;
+using Abp.Authorization;
+using Abp.Domain.Repositories;
+using Abp.Linq.Extensions;
+using Abp.UI;
+using Microsoft.EntityFrameworkCore;
+using Zero;
+using Zero.Authorization;
+using {{Path_App_Shared}}.Interface.Basic;
+using {{Path_Core}}.Basic;
+using {{Path_App_Shared}}.Dto.Basic.{{Entity_Name}};
+
+namespace {{Path_App}}.Services.Basic
+{
+    [AbpAuthorize({{App_Area_Name}}Permissions.{{Entity_Name}})]
+    public class {{Entity_Name}}AppService : ZeroAppServiceBase, I{{Entity_Name}}AppService
+    {
+        private readonly IRepository<{{Entity_Name}}> _{{entity_Name}}Repository;
+
+        public {{Entity_Name}}AppService(IRepository<{{Entity_Name}}> {{entity_Name}}Repository)
+        {
+            _{{entity_Name}}Repository = {{entity_Name}}Repository;
+        }
+
+        private IQueryable<{{Entity_Name}}Dto> {{Entity_Name}}Query(QueryInput queryInput)
+        {
+            var input = queryInput.Input;
+            var id = queryInput.Id;
+
+            var query = from obj in _{{entity_Name}}Repository.GetAll()
+
+                    .Where(o => !o.IsDeleted && o.TenantId == AbpSession.TenantId)
+                    .WhereIf(input != null && !string.IsNullOrWhiteSpace(input.Filter), e => e.Code.Contains(input.Filter) || e.Name.Contains(input.Filter) || e.Note.Contains(input.Filter))
+                    .WhereIf(id.HasValue, e => e.Id == id.Value)
+                select new {{Entity_Name}}Dto
+                {
+                    Id = obj.Id,
+                    Code = obj.Code,
+                    Name = obj.Name,
+                    Note = obj.Note,
+                    IsActive = obj.IsActive
+                };
+            return query;
+        }
+
+        private class QueryInput
+        {
+            public GetAll{{Entity_Name}}Input Input { get; init; }
+            public int? Id { get; init; }
+        }
+
+        public async Task<PagedResultDto<Get{{Entity_Name}}ForViewDto>> GetAll(GetAll{{Entity_Name}}Input input)
+        {
+
+            var queryInput = new QueryInput
+            {
+                Input = input
+            };
+            
+            var objQuery = {{Entity_Name}}Query(queryInput);
+            var pagedAndFilteredAuthors = objQuery.OrderBy(input.Sorting ?? "id asc").PageBy(input);
+
+            var objs = from o in pagedAndFilteredAuthors
+                select new Get{{Entity_Name}}ForViewDto
+                {
+                    {{Entity_Name}} = ObjectMapper.Map<{{Entity_Name}}Dto>(o)
+                };
+
+            var totalCount = await objQuery.CountAsync();
+            var res = await objs.ToListAsync();
+
+            return new PagedResultDto<Get{{Entity_Name}}ForViewDto>(
+                totalCount,
+                res
+            );
+        }
+
+        [AbpAuthorize({{App_Area_Name}}Permissions.{{Entity_Name}}_Edit)]
+        public async Task<Get{{Entity_Name}}ForEditOutput> Get{{Entity_Name}}ForEdit(EntityDto input)
+        {
+
+            var queryInput = new QueryInput
+            {
+                Id = input.Id
+            };
+
+            var {{entity_Name}} = await {{Entity_Name}}Query(queryInput).FirstOrDefaultAsync();
+
+            var output = new Get{{Entity_Name}}ForEditOutput
+            {
+                {{Entity_Name}} = ObjectMapper.Map<CreateOrEdit{{Entity_Name}}Dto>({{entity_Name}})
+            };
+            return output;
+        }
+
+        private async Task ValidateDataInput(CreateOrEdit{{Entity_Name}}Dto input)
+        {
+            var res = await _{{entity_Name}}Repository.GetAll()
+                .Where(o => !o.IsDeleted && o.TenantId == AbpSession.TenantId && o.Code.Equals(input.Code) && o.Name.Equals(input.Name))
+                .WhereIf(input.Id.HasValue, o => o.Id != input.Id)
+                .FirstOrDefaultAsync();
+            if (res != null) throw new UserFriendlyException(L("Error"), L("CodeAlreadyExists"));
+        }
+
+        public async Task CreateOrEdit(CreateOrEdit{{Entity_Name}}Dto input)
+        {
+            input.Code = input.Code.Trim();
+            input.Name = input.Name.Trim();
+            
+            await ValidateDataInput(input);
+
+            if (!input.Id.HasValue)
+            {
+                await Create(input);
+                return;
+            }
+
+            await Update(input);
+        }
+
+        [AbpAuthorize(LibPermissions.{{Entity_Name}}_Create)]
+        private async Task Create(CreateOrEdit{{Entity_Name}}Dto input)
+        {
+            var obj = ObjectMapper.Map<{{Entity_Name}}>(input);
+            obj.TenantId = AbpSession.TenantId;
+            await _{{entity_Name}}Repository.InsertAndGetIdAsync(obj);
+        }
+
+        [AbpAuthorize({{App_Area_Name}}Permissions.{{Entity_Name}}_Edit)]
+        private async Task Update(CreateOrEdit{{Entity_Name}}Dto input)
+        {
+            if (input.Id.HasValue)
+            {
+                var obj = await _{{entity_Name}}Repository.FirstOrDefaultAsync(o => o.TenantId == AbpSession.TenantId && o.Id == input.Id);
+                if (obj == null) throw new UserFriendlyException(L("NotFound"));
+                ObjectMapper.Map(input, obj);
+            }
+        }
+
+        [AbpAuthorize({{App_Area_Name}}Permissions.{{Entity_Name}}_Delete)]
+        public async Task Delete(EntityDto input)
+        {
+            var obj = await _{{entity_Name}}Repository.FirstOrDefaultAsync(o => o.TenantId == AbpSession.TenantId && o.Id == input.Id);
+            if (obj == null) throw new UserFriendlyException(L("NotFound"));
+            await _{{entity_Name}}Repository.DeleteAsync(obj.Id);
+        }
+    }
+}

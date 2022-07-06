@@ -1,0 +1,156 @@
+(function () {
+    $(function () {
+
+        let _$PhoneTable = $('#PhoneTable');
+        let _$PhoneTableFilter = $('#PhoneTableFilter');
+        let _$PhoneFormFilter = $('#PhoneFormFilter');
+
+        let _$refreshButton = _$PhoneFormFilter.find("button[name='RefreshButton']");
+        let _createSingleButton = $('#CreateNewButton');
+
+        let _phoneService = abp.services.app.phone;
+
+        let _scriptUrl = abp.appPath + 'view-resources/Areas/Lib/Phone/';
+        let _viewUrl = abp.appPath + 'Lib/Phone/';
+
+        const _permissions = {
+            create: abp.auth.hasPermission('Lib.Phone.Create'),
+            edit: abp.auth.hasPermission('Lib.Phone.Edit'),
+            'delete': abp.auth.hasPermission('Lib.Phone.Delete')
+        };
+
+        const _createOrEditModal = new app.ModalManager({
+            viewUrl: _viewUrl + 'CreateOrEditModal',
+            scriptUrl: _scriptUrl + '_CreateOrEditModal.js',
+            modalClass: 'CreateOrEditPhoneModal'
+        });
+
+        let getFilter = function () {
+            return {
+                filter: _$PhoneTableFilter.val()
+            };
+        };
+
+        let dataTable = _$PhoneTable.DataTable({
+            paging: true,
+            serverSide: true,
+            processing: true,
+            deferLoad: 0,
+            listAction: {
+                ajaxFunction: _phoneService.getAll,
+                inputFilter: getFilter
+            },
+            columnDefs: [
+                {
+                    targets: 0,
+                    className: 'control responsive',
+                    orderable: false,
+                    render: function () {
+                        return '';
+                    }
+                },
+                {
+                    width: 80,
+                    targets: 1,
+                    data: null,
+                    orderable: false,
+                    autoWidth: false,
+                    defaultContent: '',
+                    rowAction: {
+                        dropDownStyle: false,
+                        cssClass: 'text-center',
+                        items: [
+                            {
+                                icon: 'la la-edit text-primary',
+                                text: app.localize('Edit'),
+                                visible: function (data) {
+                                    return _permissions.edit;
+                                },
+                                action: function (data) {
+                                    _createOrEditModal.open({id: data.record.phone.id});
+                                }
+                            },
+                            {
+                                icon: 'la la-trash text-danger',
+                                text: app.localize('Delete'),
+                                visible: function (data) {
+                                    return _permissions.delete;
+                                },
+                                action: function (data) {
+                                    baseHelper.Delete(data.record.phone, _phoneService, getPhone);
+                                }
+                            }]
+                    }
+                },
+                {
+                    targets: 2,
+                    data: "phone.code",
+                    name: "code"
+                },
+                {
+                    targets: 3,
+                    data: "phone.name",
+                    name: "name"
+                },
+                {
+                    targets: 4,
+                    data: "phone.note",
+                    name: "note"
+                },
+                {
+                    targets: 5,
+                    data: "phone.isActive",
+                    name: "isActive",
+                    class: "text-center",
+                    width: 80,
+                    render: function(isActive) {
+                        return baseHelper.ShowActive(isActive);
+                    }
+                }
+            ]
+        });
+
+        function getPhone() {
+            dataTable.ajax.reload();
+        }
+
+        if (_$refreshButton) {
+            _$refreshButton.on('click', getPhone);
+        }
+        
+        if (_createSingleButton) {
+            _createSingleButton.click(function () {
+                _createOrEditModal.open();
+            });
+        }
+
+        abp.event.on('app.createOrEditPhoneModalSaved', getPhone);
+
+        $(document).keypress(function (e) {
+            let sideBar = $('#kt_quick_sidebar');
+            if (e.which === 13 && (sideBar === undefined || !sideBar.hasClass('kt-quick-panel--on'))) {
+                getPhone();
+            }
+        });
+
+        //IMPORT
+        let btnImport = $('#ImportFromExcelButton');
+        if (btnImport) {
+            btnImport.fileupload({
+                url: abp.appPath + 'Lib/Phone/ImportFromExcel',
+                dataType: 'json',
+                maxFileSize: 1048576 * 100,
+                done: function (e, response) {
+                    let jsonResult = response.result;
+                    if (jsonResult.success) {
+                        abp.notify.info(app.localize('UploadImportFileSuccessful'));
+                    } else {
+                        abp.notify.warn(app.localize('UploadImportFileFailed'));
+                    }
+                }
+            }).prop('disabled', !$.support.fileInput)
+                .parent().addClass($.support.fileInput ? undefined : 'disabled');
+        }
+        
+    });
+})();

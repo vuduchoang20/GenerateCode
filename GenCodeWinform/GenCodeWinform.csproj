@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Customize\**" />
+    <Compile Remove="Src\**" />
+    <Compile Remove="Template\AppServiceIntercafeClass\**" />
+    <EmbeddedResource Remove="Customize\**" />
+    <EmbeddedResource Remove="Src\**" />
+    <EmbeddedResource Remove="Template\AppServiceIntercafeClass\**" />
+    <None Remove="Customize\**" />
+    <None Remove="Src\**" />
+    <None Remove="Template\AppServiceIntercafeClass\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Template\AppServiceClass\MainTemplate.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

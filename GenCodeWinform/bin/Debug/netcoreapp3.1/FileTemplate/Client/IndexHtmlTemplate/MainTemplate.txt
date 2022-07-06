@@ -1,0 +1,74 @@
+﻿@model Zero.Web.Areas.{{App_Area_Name}}.Models.{{Entity_Name}}.{{Entity_Name}}ViewModel
+@{
+    ViewBag.CurrentPageName = AppPageNames.{{App_Area_Name}}.{{Entity_Name}};
+}
+
+@section Scripts
+{
+    <script abp-src="@ZeroConst.ScriptPathLib/{{Entity_Name}}/Index.js" asp-append-version="true"></script>
+}
+
+<div class="content d-flex flex-column flex-column-fluid" id="kt_content">
+    <abp-page-subheader title="@L("{{Entity_Name}}")" description="@L("{{Entity_Name}}HeaderInfo")">
+        @if (IsGranted({{App_Area_Name}}Permissions.{{Entity_Name}}_Create))
+        {
+            <div class="btn-group">
+                <button type="button" class="btn btn-outline-success dropdown-toggle mr-1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <i class="far fa-file-excel"></i> @L("ExcelOperations")
+                </button>
+                <div class="dropdown-menu dropdown-menu-right">
+                    <a class="dropdown-item" href="#">
+                        <span class="fileinput-button">
+                            <span>@L("ImportFromExcel")</span>
+                            <input id="ImportFromExcelButton" type="file" name="files" accept=".xlsx">
+                        </span>
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <span class="dropdown-item" href="#">
+                        @Html.Raw("<a href='" + @Url.Action("ExportTemplate", "{{Entity_Name}}") + "'>" + L("DownLoadImportTemplate") + "</a>")
+                    </span>
+                </div>
+            </div>
+            <button id="CreateNewButton" class="btn btn-primary blue">
+                <i class="fa fa-plus"></i> @L("Create")
+            </button>
+        }
+    </abp-page-subheader>
+
+    <div class="@(await GetContainerClass())">
+        <div class="card card-custom gutter-b">
+            <div class="card-body">
+                <div class="form">
+                    <div id="{{Entity_Name}}FormFilter">
+                        <div class="row mb-15">
+                            <div class="col-12">
+                                <div class="input-group">
+                                    <input id="{{Entity_Name}}TableFilter" class="form-control" type="text" value="@ViewBag.FilterText" placeholder="@L("SearchWithThreeDot")" aria-describedby="basic-addon2">
+                                    <span class="input-group-btn">
+                                        <button type="button" name="RefreshButton" class="btn btn-primary">
+                                            <i class="fa fa-search"></i>
+                                        </button>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="align-items-center">
+                    <table id="{{Entity_Name}}Table" class="display table table-striped table-bordered table-hover">
+                        <thead>
+                        <tr>
+                            <th></th>
+                            <th class="text-center">@L("Actions")</th>
+                            <th class="text-center">@L("Code")</th>
+                            <th class="text-center">@L("Name")</th>
+                            <th class="text-center">@L("Note")</th>
+                            <th class="text-center">@L("IsActive")</th>
+                        </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

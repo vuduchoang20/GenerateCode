@@ -1,0 +1,10 @@
+﻿using Zero.Customize.Base;
+using System.ComponentModel.DataAnnotations;
+
+namespace {{Path_App_Shared}}.Dto.Basic.{{Entity_Name}}
+{
+    public class {{Entity_Name}}Dto: {{Base_Class_Entity_Dto_Name}}
+    {
+       {{Properties_Entity}}
+    }
+}

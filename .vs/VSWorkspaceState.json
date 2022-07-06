@@ -1,0 +1,14 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\GenCodeWinform",
+    "\\GenCodeWinform\\bin",
+    "\\GenCodeWinform\\bin\\Debug",
+    "\\GenCodeWinform\\bin\\Debug\\netcoreapp3.1",
+    "\\GenCodeWinform\\bin\\Debug\\netcoreapp3.1\\FileTemplate",
+    "\\GenCodeWinform\\bin\\Debug\\netcoreapp3.1\\FileTemplate\\Server",
+    "\\GenCodeWinform\\bin\\Debug\\netcoreapp3.1\\FileTemplate\\Server\\Entity"
+  ],
+  "SelectedNode": "\\GenCodeWinform\\Form1.cs",
+  "PreviewInSolutionExplorer": false
+}
